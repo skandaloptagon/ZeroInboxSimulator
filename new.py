@@ -8,13 +8,21 @@ winner = None
 spaces = []
 emails=["email reply","email attach","email meeting","email file"]
 
+player_number = 1
 class player:
     deck = []
     space = 0
+    name = ""
 
     def __init__(self, cards):
+        global player_number
         self.deck = cards
+        self.name = "Player {}".format(player_number)
+        player_number += 1
         pass
+
+    def __str__(self):
+        return self.name
 
 
 class space:
@@ -65,6 +73,38 @@ with open("board.json") as board:
                 spaces.append(space(i["name"]))
 
 
+def cycle_trash(p):
+    global deck, trash
+    if len(deck) > 0:
+        p.deck.append(deck.pop())
+    else:
+        random.shuffle(trash)
+        deck = trash
+        trash = []
+        if len(deck) > 0:
+            p.deck.append(deck.pop())
+        else:
+            pass
+
+def forward(p):
+    others = [player for player in players if player is not p]
+    try:
+        card = random.choice([card for card in p.deck if card.startswith("email")])
+        target = random.choice(others)
+        if in_office(target):
+            p.deck.remove(card)
+            target.deck.append(card)
+            print "forwarding {} to {}".format(card,target)
+    except IndexError:
+        pass 
+
+def in_office(p):
+    if "out of office" in p.deck:
+        p.deck.remove("out of office")
+        print "{} is out of office".format(p)
+        return False
+    return True
+
 random.shuffle(deck)
 
 winner = False
@@ -99,25 +139,20 @@ while not winner:
             # Here I process the players action card choice
 
             if choice == "forward":
-                card = random.choice([card for card in p.deck if card.startswith("email")])
-                target = random.choice(others)
-                print "forwarding {} to {}".format(card,target)
+                forward(p)
 
             elif choice == "reply all":
-                for target in others:
-                    try:
-                        target.deck.append(deck.pop())
-                    except:
-                        random.shuffle(trash)
-                        deck = trash
-                        trash = []
-                        target.deck.append(deck.pop())
                 print "All players draw a card"
+                for target in others:
+                    cycle_trash(target)
 
             elif choice == "meeting request":
                 target = random.choice(others)
-                meeting = target
-                boss = p
+                if in_office(target):
+                    meeting = target
+                    boss = p
+
+                    print "{} request a meeting with {}".format(boss,target)
 
             elif choice == "server crash":
                 print "Server crashed: killing all cards from this player"
@@ -143,25 +178,14 @@ while not winner:
             break
         p.space = p.space%len(spaces)
 
-        #print "Player", i, "Moving..."
-        #print i, "Landed on", p.space, spaces[p.space].card
         if spaces[p.space].draw:
-            #print i, "Drawing Card..."
-            if len(deck) > 0:
-                p.deck.append(deck.pop())
-            else:
-                random.shuffle(trash)
-                deck = trash
-                trash = []
-                if len(deck) > 0:
-                    p.deck.append(deck.pop())
-                else:
-                    pass
+            cycle_trash(p)
 
         elif spaces[p.space].card == "free forward":
-            #print "free forward"
+            forward(p)
             pass
         else:
+            # Discard Space Card
             try:
                 p.deck.remove(spaces[p.space].card)
                 trash.append(spaces[p.space].card)
