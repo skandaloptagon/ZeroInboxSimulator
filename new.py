@@ -85,18 +85,25 @@ while not winner:
             boss = None
 
         try:
-            choice = random.choice([card for card in p.deck if not card.startswith("email")])
+            # player chooses an action card (not an email) or reaction (out of office) 
+            choice = random.choice([card for card in p.deck if not card.startswith("email") and not card == "out of office" ])
+            
+            # remove the chosen card from the players deck and append it to the primary deck
             p.deck.remove(choice)
             deck.append(choice)
 
+            #others is a list of players that is not the current player
             others = [player for player in players if player is not p]
+
+
+            # Here I process the players action card choice
 
             if choice == "forward":
                 card = random.choice([card for card in p.deck if card.startswith("email")])
                 target = random.choice(others)
                 print "forwarding {} to {}".format(card,target)
 
-            if choice == "reply all":
+            elif choice == "reply all":
                 for target in others:
                     try:
                         target.deck.append(deck.pop())
@@ -107,16 +114,22 @@ while not winner:
                         target.deck.append(deck.pop())
                 print "All players draw a card"
 
-            if choice == "meeting request":
+            elif choice == "meeting request":
                 target = random.choice(others)
                 meeting = target
                 boss = p
 
-            if choice == "out of office":
-                pass
+            elif choice == "server crash":
+                print "Server crashed: killing all cards from this player"
+                for card in p.deck:
+                    if card.startswith("email"):
+                        print "\tRemoving card {}".format(card)
+                        p.deck.remove(card)
+                        deck.append(card)
 
-            if choice == "server crash":
-                pass
+            else:
+                print "player had no choices"
+
         except:
             pass
 
@@ -134,13 +147,17 @@ while not winner:
         #print i, "Landed on", p.space, spaces[p.space].card
         if spaces[p.space].draw:
             #print i, "Drawing Card..."
-            try:
+            if len(deck) > 0:
                 p.deck.append(deck.pop())
-            except:
+            else:
                 random.shuffle(trash)
                 deck = trash
                 trash = []
-                p.deck.append(deck.pop())
+                if len(deck) > 0:
+                    p.deck.append(deck.pop())
+                else:
+                    pass
+
         elif spaces[p.space].card == "free forward":
             #print "free forward"
             pass
